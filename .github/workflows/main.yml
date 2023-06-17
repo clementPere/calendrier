@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: SFTP Deploy
-        uses: appleboy/ssh-action@v0.1.6
+        uses: appleboy/ssh-action@v0.1.10
         with:
           username: ${{ secrets.SSH_USERNAME }}
           host: ${{ secrets.SSH_SERVER }}
