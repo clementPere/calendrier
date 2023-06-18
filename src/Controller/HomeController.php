@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Calendar;
+use App\Form\CalendarType;
 use App\Repository\CalendarRepository;
 use DateTime;
 use Doctrine\Persistence\ManagerRegistry;
@@ -14,30 +15,14 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class HomeController extends AbstractController
 {
-    public function __construct(private ManagerRegistry $doctrine)
+    public function __construct(private ManagerRegistry $doctrine, private CalendarRepository $calendar)
     {
     }
-    #[Route('/', name: 'app_home')]
-    public function index(CalendarRepository $calendar): Response
-    {
-        $events = $calendar->findAll();
 
-        $rdvs = [];
-        foreach ($events as $event) {
-            $rdvs[] = [
-                'id' => $event->getId(),
-                'start' => $event->getStart()->format('Y-m-d H:i:s'),
-                'end' => $event->getEnd()->format('Y-m-d H:i:s'),
-                'allDay' => $event->isAllDay(),
-                'title' => $event->getTitle(),
-                'description' => $event->getDescription(),
-                'backgroundColor' => $event->getBackgroundColor(),
-                'borderColor' => $event->getBorderColor(),
-                'textColor' => $event->getTextColor(),
-            ];
-        }
-        $data = json_encode($rdvs);
-        return $this->render('home/index.html.twig', compact('data'));
+    #[Route('/', name: 'app_home')]
+    public function index(): Response
+    {
+        return $this->render('home/index.html.twig', ["data" => $this->getAllRdvs()]);
     }
 
 
@@ -80,5 +65,56 @@ class HomeController extends AbstractController
         } else {
             return new Response('Données incomplètes', 404);
         }
+    }
+
+    #[Route('/select/event', name: 'app_event_select')]
+    public function selectEvent(?Calendar $calendar, Request $request, CalendarRepository $calendarRepository)
+    {
+        $donnees = json_decode($request->getContent());
+
+        $calendar = new Calendar();
+        $calendar->setStart(new DateTime($donnees->date));
+        $calendar->setEnd(new DateTime($donnees->date));
+        $calendar->setAllDay($donnees->allDay);
+        $calendar->setDescription('ok');
+
+        $form = $this->createForm(CalendarType::class, $calendar);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted()) {
+            dd('Enregistrer !');
+            $calendarRepository->save($calendar, true);
+            $em = $this->doctrine->getManager();
+            $em->persist($calendar);
+            $em->flush();
+
+            // return $this->redirectToRoute('app_calendar_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->renderForm('calendar/_form.html.twig', [
+            "donnees" => $donnees,
+            "form" => $form
+        ]);
+    }
+
+    private function getAllRdvs()
+    {
+        $events = $this->calendar->findAll();
+
+        $rdvs = [];
+        foreach ($events as $event) {
+            $rdvs[] = [
+                'id' => $event->getId(),
+                'start' => $event->getStart()->format('Y-m-d H:i:s'),
+                'end' => $event->getEnd()->format('Y-m-d H:i:s'),
+                'allDay' => $event->isAllDay(),
+                'title' => $event->getTitle(),
+                'description' => $event->getDescription(),
+                'backgroundColor' => $event->getBackgroundColor(),
+                'borderColor' => $event->getBorderColor(),
+                'textColor' => $event->getTextColor(),
+            ];
+        }
+        return json_encode($rdvs);
     }
 }

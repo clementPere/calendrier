@@ -1,10 +1,31 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Calendrier<3{% endblock %}
+{% block title %}Calendrier{% endblock %}
 
 {% block body %}
-    <link href="{{ asset('css/home.css') }}" rel="stylesheet"/>
-    <div id="calendar"></div>
+  
+    
+    <h1 class="text-center">S+C = ♥</h1>
+      <div id="calendar"></div>
+          <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="exampleModalLabel">Ajouter</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                  <div id="formContainer"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button class="btn btn-primary">{{ button_label|default('Enregistrer') }}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+    
+    
 {% endblock %}
 
 {% block javascripts %}
@@ -17,15 +38,33 @@
           initialView: 'dayGridMonth',
           locale: 'fr',
           timeZone: 'Europe/Paris',
+          themeSystem: 'bootstrap5',
           headerToolbar: {
             locale: 'fr',
             start: 'prev,next today',
             center: 'title',
-            end: 'dayGridMonth,timeGridWeek,listWeek'
+            end: 'dayGridMonth,timeGridWeek',
+            
           },
           events: {{data|raw}},
           editable: true,
           eventResizableFromStart: true,
+          eventDurationEditable: true,
+          navLinks: true,
+          firstDay: 1,
+          selectable: true,
+          themeSystem: 'bootstrap5',
+          dateClick: function(info){
+            onClick(info)
+          },
+          views: {
+            dayGridMonth: {
+              buttonText: 'Mois'
+              },
+            timeGridWeek: {
+              buttonText: 'Semaine'
+              }
+          },
         });
 
         //Quand une tâche est déplacé
@@ -48,5 +87,23 @@
           });
         calendar.render();
       });
+
+
+      //Quand on clique sur un element du calendrier
+      function onClick(e){
+        let donnees = JSON.stringify(e)
+        // Effectuez une requête HTTP pour récupérer le HTML du formulaire
+        axios.post('/select/event', donnees)
+          .then(function (response) {
+            // Injectez le HTML du formulaire dans le conteneur
+              document.getElementById('formContainer').innerHTML = response.data;
+              var modal = new bootstrap.Modal(document.getElementById("exampleModal"));
+              modal.show();
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      }
+   
     </script>
 {% endblock %}
